@@ -1,0 +1,51 @@
+# Local git initialization script
+git_commit.sh
+
+# Build directories and source downloads
+/tmp/
+crun*/
+podman*/
+passt*/
+*.tar.gz
+*.tar.xz
+/old/
+
+# Test files and generated configs
+test_rm_secure_*/
+*_test/
+debug_*
+*.backup.*
+
+# User-specific files
+.env
+.env.local
+.env.*.local
+*.txt 
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs and temporary files
+*.log
+logs/
+*.tmp
+*.temp
+
+# System files
+.Trash-*
+Thumbs.db
+ehthumbs.db
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Runtime and cache
+*.pid
+*.cache
