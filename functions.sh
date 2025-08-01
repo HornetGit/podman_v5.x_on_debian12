@@ -101,6 +101,22 @@ service_is_running() {
     systemctl --user is-active --quiet "$service" 2>/dev/null
 }
 
+# reset podman socket
+reset_socket(){
+    systemctl --user enable podman.socket
+    systemctl --user start --now podman.socket
+    systemctl --user status podman.socket
+    if systemctl --user is-active --quiet podman.socket; then
+        if export_podman_socket; then 
+            return 0
+        else
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
 # Clean up podman containers
 # note that podman system reset --force
 # will entirely WIPE OUT your setup if any,

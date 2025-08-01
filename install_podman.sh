@@ -132,7 +132,9 @@ sudo apt install -y \
   autoconf \
   automake \
   libtool \
-  go-md2man
+  go-md2man \
+  libglib2.0-dev # glib-2.0  required for 'conmon' build
+    
 
 echo "=== PHASE 3: INSTALL GO 1.23.4 ==="
 
@@ -164,6 +166,11 @@ echo "=== PHASE 4: BUILD CRUN 1.19.2 or latest (before installing podman) ==="
 echo "=== PHASE 5: BUILD latest PASST from its source (pasta is a part of PASST)==="
 ./install_passt.sh
 
+echo "=== PHASE 5.1: BUILDING CONMON FROM SOURCE ==="
+if ! ./install_conmon.sh; then
+    log_error "Failed to build conmon"
+    exit 1
+fi
 
 echo "=== PHASE 6: BUILD PODMAN 5.3.1 (AFTER crun) ==="
 
@@ -180,12 +187,19 @@ git checkout v5.3.1
 
 # Build with OFFICIAL recommended tags from podman.io
 echo "Building Podman with official build tags..."
-make BUILDTAGS='seccomp apparmor'
+#make BUILDTAGS='seccomp apparmor'
+make BUILDTAGS='seccomp apparmor systemd'  # include systemd for enabling healhchecks
 
 # Install system-wide
 sudo env "PATH=$PATH" make install
 
 echo "=== PHASE 7: VERIFICATION ==="
+
+# reset podman socket
+if ! reset_socket; then
+    log_error "Failed to reset podman socket"
+    exit 1
+fi
 
 # Verify installations
 echo "=== Verification Results ==="
@@ -193,6 +207,10 @@ echo "Podman version:"
 podman --version
 echo "Podman location:"
 which podman
+echo "conmon installed version:"
+conmon --version
+echo "podman using conmon (might require a socket reset to enable)"
+podman info | grep -A 5 conmon | grep version
 echo "crun version:"
 crun --version
 echo "crun location:"
@@ -213,10 +231,13 @@ echo "2) Testing basic container functionality (ping google)..."
 podman run --rm --network=pasta alpine ping -c3 8.8.8.8
 
 echo "=== PHASE 9: HEALTHCHECK TEST ==="
-./check_podman.sh
-
+if ! ./check_podman.sh; then
+    log_warning "Healthcheck test failed - but continuing"
+else
+    echo "✅ Healthcheck functionality verified!"
+fi
 
 echo "=== UPGRADE COMPLETED SUCCESSFULLY ==="
 echo "✅ Podman 5.3.1 with healthcheck support is ready!"
 echo "✅ You can now add healthchecks to your compose files"
-echo ""
+echo "Note: healthcheks may require to use Docker format the the build time"

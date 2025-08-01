@@ -1,6 +1,6 @@
 # Debian Podman 5.x Installation Scripts
 
-A complete set of scripts to install podman v5.x as a modern container tools on Debian 12, bypassing outdated repository packages.
+A complete set of scripts to install podman v5.x as a modern container tools on Debian 12 (bookworm), bypassing outdated repository packages.
 
 ## Purpose
 
@@ -8,8 +8,16 @@ Debian 12's repositories contain severely outdated container packages that don't
 - **Install Podman 5.3.1** from source with full feature support
 - **Install crun 1.19.2** for optimal performance vs runc
 - **Install latest passt/pasta** for advanced networking
+- **Install latest conmon** for advanced healthchecks
 - **Install podman-compose** from upstream GitHub
 - **Build everything from source** to get latest features and healthcheck support
+
+## Key Features Enabled
+- ✅ **Healthcheck Support** - Full container health monitoring
+- ✅ **Rootless Containers** - Enhanced security without root
+- ✅ **Advanced Networking** - passt/pasta integration  
+- ✅ **crun Performance** - Faster than runc runtime
+- ✅ **Modern Compose** - Latest podman-compose features
 
 ## What Gets Installed
 
@@ -19,6 +27,7 @@ Debian 12's repositories contain severely outdated container packages that don't
 | **crun** | 1.19.2+ | GitHub source | Debian has old incompatible version |
 | **passt/pasta** | latest | GitLab source | Not in Debian repos |
 | **Go** | 1.23.4 | Official binary | Required for Podman build |
+| **conmon** | latest | GitHub source | Healthcheck support vs. Debian repos |
 | **podman-compose** | latest | GitHub | Comply with podman v5.x |
 
 ## Prerequisites
@@ -38,13 +47,26 @@ The installation user must:
 ### Directory Setup
 **IMPORTANT**: Create the required project directory structure:
 ```bash
-mkdir -p $HOME/Project/InstallationScripts/
-cd $HOME/Project/InstallationScripts/
+mkdir -p $HOME/Projects/InstallationScripts/
+cd $HOME/Projects/InstallationScripts/
 ```
 
 This directory structure is required by the installation scripts.
 
+#
+
 ## Installation Files
+
+### Repository Structure
+podman-v5x-debian12/
+├── 📋 README.md                 # Complete installation guide
+├── 🔧 functions.sh              # Shared utility functions
+├── 🚀 install_podman.sh         # Main installation orchestrator
+├── ⚙️  install_crun.sh           # Build crun runtime from source
+├── 🌐 install_passt.sh          # Build passt networking from source
+├── 🔍 install_conmon.sh         # Build conmon with healthcheck support
+├── 🗑️  uninstall_crun.sh        # Clean removal of crun installations
+└── ✅ check_podman.sh           # Verify installation and healthcheck
 
 ### Core Installation Scripts (run in order):
 1. **`functions.sh`** - Shared utility functions library
@@ -52,7 +74,8 @@ This directory structure is required by the installation scripts.
 3. **`install_crun.sh`** - Build crun 1.19.2+ from source
 4. **`install_passt.sh`** - Build passt/pasta from source
 5. **`uninstall_crun.sh`** - Remove all crun installations
-6. **`check_podman.sh`** - Verify installation and healthcheck support
+6. **`install_conmon.sh`** - Build conmon with healthcheck support
+7. **`check_podman.sh`** - Verify installation and healthcheck support
 
 ### Development/Testing Scripts:
 - **`test_rm_secure.sh`** - Test secure removal function (development)
@@ -68,7 +91,7 @@ chmod +x *.sh
 
 ### 2. Create Required Directory Structure
 ```bash
-mkdir -p $HOME/Project/InstallationScripts/
+mkdir -p $HOME/Projects/InstallationScripts/
 ```
 
 ### 3. Run Main Installation
@@ -90,6 +113,7 @@ crun --version                     # Should show 1.19.2+
 podman info | grep -i runtime      # Should show crun
 passt --version                    # Should work
 podman-compose --version           # Should work (if installed)
+conmon --version                   # Should show 2.1.13+
 ```
 
 ## Installation Process
@@ -129,7 +153,7 @@ podman-compose --version           # Should work (if installed)
 
 ### Phase 6: Build Podman 5.3.1
 - **Clones Podman source from GitHub**
-- **Builds with official recommended build tags**: `seccomp apparmor`
+- **Builds with official recommended build tags**: `seccomp apparmor systemd`
 - **Installs system-wide** with proper permissions
 - **Includes all modern features** missing from Debian packages
 
@@ -210,6 +234,7 @@ sudo apt update && sudo apt install build-essential
 ```bash
 # Restart Podman socket
 systemctl --user restart podman.socket
+# or use the functions.sh lib: see 'reset_socket()'
 ```
 
 ### crun Not Found

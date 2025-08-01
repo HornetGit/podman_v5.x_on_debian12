@@ -6,7 +6,7 @@
 set -e
 
 
-cd $HOME/Project/InstallationScripts/
+cd $HOME/Projects/InstallationScripts/
 
 # Test healthcheck functionality (e.g. the main reason for my podman upgrade)
 echo "Testing healthcheck functionality..."
