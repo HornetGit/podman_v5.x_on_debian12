@@ -58,15 +58,18 @@ This directory structure is required by the installation scripts.
 ## Installation Files
 
 ### Repository Structure
+
+```
 podman-v5x-debian12/
-├── 📋 README.md          # Complete installation guide
-├── 🔧 functions.sh       # Shared utility functions
-├── 🚀 install_podman.sh  # Main installation orchestrator
-├── ⚙️  install_crun.sh   # Build crun runtime from source
-├── 🌐 install_passt.sh   # Build passt networking from source
-├── 🔍 install_conmon.sh  # Build conmon with healthcheck support
-├── 🗑️ uninstall_crun.sh  # Clean removal of crun installations
-└── ✅ check_podman.sh    # Verify installation and healthcheck
+├── README.md            # Complete installation guide
+├── functions.sh         # Shared utility functions
+├── install_podman.sh    # Main installation orchestrator
+├── install_crun.sh      # Build crun runtime from source
+├── install_passt.sh     # Build passt networking from source
+├── install_conmon.sh    # Build conmon with healthcheck support
+├── uninstall_crun.sh    # Clean removal of crun installations
+└── check_podman.sh      # Verify installation and healthcheck
+```
 
 ### Core Installation Scripts (run in order):
 1. **`functions.sh`** - Shared utility functions library
