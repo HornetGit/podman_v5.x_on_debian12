@@ -105,13 +105,17 @@ else
 fi
 
 
-# NOTE: This ONLY works for the script runner CURRENT USER, NOT for TARGET_USER
-# this is another CC massive error
-if cleanup_podman; then
-    log_success "podman previous install wiped out"
-    log_warning "for user: $SCRIPT_RUNNER"
+# Run cleanup_podman as TARGET_USER (not as admin who runs this script)
+LIB_PATH="$SCRIPT_DIR/../lib"
+if sudo -u "$TARGET_USER" XDG_RUNTIME_DIR="/run/user/$TARGET_UID" bash -c "
+    source '$LIB_PATH/constants.sh'
+    source '$LIB_PATH/log_functions.sh'
+    source '$LIB_PATH/podman_functions.sh'
+    cleanup_podman
+"; then
+    log_success "podman previous install wiped out for user: $TARGET_USER"
 else
-    log_error "podman previous install wiped out: FAILED"
+    log_warning "podman cleanup for $TARGET_USER: some steps may have failed (non-fatal)"
 fi
 
 # Remove all container-related packages
@@ -298,9 +302,14 @@ log_info "=== PHASE 7: VERIFICATION ==="
 # Update PATH to include user-specific binaries for verification
 export PATH="$TARGET_HOME/.local/bin:$TARGET_HOME/bin:$PATH"
 
-# reset podman socket
-if ! reset_socket; then
-    log_error "Failed to reset podman socket"
+# Reset podman socket for TARGET_USER (not admin)
+if ! sudo -u "$TARGET_USER" XDG_RUNTIME_DIR="/run/user/$TARGET_UID" bash -c "
+    source '$LIB_PATH/constants.sh'
+    source '$LIB_PATH/log_functions.sh'
+    source '$LIB_PATH/podman_functions.sh'
+    reset_socket
+"; then
+    log_error "Failed to reset podman socket for $TARGET_USER"
     exit 1
 fi
 

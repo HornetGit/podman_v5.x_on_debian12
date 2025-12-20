@@ -136,7 +136,8 @@ The main installer (`install_podman.sh`) executes 12 phases:
 11. **Security Guidance** - Point to validation tools
 12. **PATH Consolidation** - Clean up .bashrc
 
-For detailed documentation, open `docs/workflow_podman_installer.html` in a browser.
+For detailed documentation, see [workflow_podman_installer.html](docs/workflow_podman_installer.html).
+
 
 ## Security Validation
 
@@ -158,13 +159,18 @@ sudo ./podman-security-bench.sh
 
 ## Troubleshooting
 
+**Important:** Most troubleshooting commands must be run AS the podman user, not as admin.
+
 ### Socket not found
 
 ```bash
-# Check socket status
+# Switch to podman user first
+su - podman_user
+
+# Check socket status (as podman_user)
 systemctl --user status podman.socket
 
-# Restart socket
+# Restart socket (as podman_user)
 systemctl --user restart podman.socket
 
 # Verify socket path
@@ -174,10 +180,11 @@ ls -la /run/user/$(id -u)/podman/podman.sock
 ### Permission denied
 
 ```bash
-# Ensure linger is enabled
-sudo loginctl enable-linger $(whoami)
+# As admin user: Ensure linger is enabled for podman user
+sudo loginctl enable-linger podman_user
 
-# Check runtime directory
+# As podman_user: Check runtime directory
+su - podman_user
 ls -la /run/user/$(id -u)/
 ```
 
