@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podman 5.x Installer Workflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e27;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid #00d4ff;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #00d4ff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+
+        .meta-info {
+            margin-top: 15px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .meta-info a {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .controls {
+            background: #1a1f3a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-btn {
+            background: #2a3f5f;
+            color: #e0e0e0;
+            border: 2px solid #00d4ff;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover {
+            background: #00d4ff;
+            color: #0a0e27;
+        }
+
+        .legend {
+            background: #1a1f3a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 2px solid #00d4ff;
+        }
+
+        .legend h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .legend-items {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-box {
+            width: 100px;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .legend-box.main {
+            background: transparent;
+            border: 3px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .legend-box.sub {
+            background: transparent;
+            border: 3px solid #44ff44;
+            color: #44ff44;
+        }
+
+        .legend-box.function {
+            background: transparent;
+            border-bottom: 4px solid #4444ff;
+            color: #4444ff;
+            border-radius: 0;
+        }
+
+        .workflow {
+            background: #1a1f3a;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        .phase {
+            margin-bottom: 40px;
+            border-left: 4px solid #00d4ff;
+            padding-left: 20px;
+        }
+
+        .phase-header {
+            cursor: pointer;
+            padding: 15px;
+            background: #2a3f5f;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s;
+            border: 3px solid #ff4444;
+        }
+
+        .phase-header:hover {
+            background: #3a4f6f;
+            transform: translateX(5px);
+        }
+
+        .phase-number {
+            background: #00d4ff;
+            color: #0a0e27;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .phase-title {
+            flex: 1;
+        }
+
+        .phase-title h2 {
+            color: #00d4ff;
+            font-size: 1.5em;
+        }
+
+        .phase-subtitle {
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .phase-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out;
+            padding-left: 55px;
+        }
+
+        .phase-content.expanded {
+            max-height: 5000px;
+            padding-top: 20px;
+        }
+
+        .script-box {
+            background: #0d1220;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .script-box.main-script {
+            border: 3px solid #ff4444;
+        }
+
+        .script-box.sub-script {
+            border: 3px solid #44ff44;
+        }
+
+        .script-box.function {
+            border-bottom: 4px solid #4444ff;
+            border-left: 1px solid #333;
+            border-right: 1px solid #333;
+            border-top: 1px solid #333;
+        }
+
+        .script-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .main-script .script-name { color: #ff4444; }
+        .sub-script .script-name { color: #44ff44; }
+        .function .script-name { color: #4444ff; }
+
+        .script-path {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .script-purpose {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #1a1f3a;
+            border-radius: 4px;
+        }
+
+        .script-details {
+            margin-top: 15px;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+        }
+
+        .detail-label {
+            color: #00d4ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .detail-content {
+            padding-left: 15px;
+            color: #ccc;
+        }
+
+        .flag-item {
+            margin: 5px 0;
+            padding: 5px 10px;
+            background: #1a1f3a;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .flag-name {
+            color: #ffaa00;
+            font-weight: bold;
+        }
+
+        .example-box {
+            background: #0a0e27;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        .execution-flow {
+            margin-top: 15px;
+            padding: 15px;
+            background: #1a1f3a;
+            border-radius: 4px;
+            border-left: 3px solid #ffaa00;
+        }
+
+        .flow-step {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .flow-step::before {
+            content: ">";
+            position: absolute;
+            left: 0;
+            color: #00d4ff;
+        }
+
+        .info-section {
+            background: #1a1f3a;
+            padding: 30px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .info-section h3 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #333;
+        }
+
+        th {
+            background: #2a3f5f;
+            color: #00d4ff;
+        }
+
+        tr:nth-child(even) {
+            background: #0d1220;
+        }
+
+        .prereq-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .prereq-list li {
+            padding: 10px 15px;
+            margin: 5px 0;
+            background: #0d1220;
+            border-radius: 4px;
+            border-left: 3px solid #44ff44;
+        }
+
+        .warning-box {
+            background: #3a2a1a;
+            border: 2px solid #ffaa00;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .warning-box h4 {
+            color: #ffaa00;
+            margin-bottom: 10px;
+        }
+
+        .security-link {
+            color: #00d4ff;
+            text-decoration: none;
+        }
+
+        .security-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PODMAN 5.x INSTALLER WORKFLOW</h1>
+            <p class="subtitle">Debian 12/13 | Rootless | Healthcheck Support | Source Build</p>
+            <div class="meta-info">
+                <p>Repository: <a href="https://github.com/HornetGit/podman_v5.x_on_debian12" target="_blank">github.com/HornetGit/podman_v5.x_on_debian12</a></p>
+                <p>Last Updated: December 2025</p>
+            </div>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="filter-btn" onclick="expandAll()">Expand All</button>
+            <button class="filter-btn" onclick="collapseAll()">Collapse All</button>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <h3>LEGEND</h3>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-box main">MAIN</div>
+                    <span>Main Script (orchestrator)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box sub">SUB</div>
+                    <span>Sub Script (component installer)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box function">FUNC</div>
+                    <span>Library Function</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prerequisites -->
+        <div class="info-section">
+            <h3>PREREQUISITES</h3>
+            <ul class="prereq-list">
+                <li><strong>Operating System:</strong> Debian 12 (Bookworm) or Debian 13 (Trixie)</li>
+                <li><strong>Admin User:</strong> Non-root user WITH sudo access (runs the installer)</li>
+                <li><strong>Podman User:</strong> Non-root user WITHOUT sudo access (target user for containers)</li>
+                <li><strong>Disk Space:</strong> ~2GB free for build dependencies and compiled binaries</li>
+                <li><strong>Network:</strong> Internet access to download source code from GitHub</li>
+            </ul>
+
+            <div class="warning-box">
+                <h4>Important Notes</h4>
+                <ul>
+                    <li>The script LAUNCHER must be in the sudoer group (scripts use sudo internally)</li>
+                    <li>Target podman user does NOT need sudo access</li>
+                    <li>Installation performs destructive cleanup of existing podman/docker</li>
+                    <li>Review scripts before running in production environments</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Workflow -->
+        <div class="workflow">
+
+            <!-- Phase 0: Entry Point -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">0</div>
+                    <div class="phase-title">
+                        <h2>install_podman.sh</h2>
+                        <div class="phase-subtitle">Main orchestrator - Entry point for complete installation</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box main-script">
+                        <div class="script-name">install_podman.sh</div>
+                        <div class="script-path">install/install_podman.sh</div>
+                        <div class="script-purpose">
+                            Main orchestrator that installs Podman 5.3.1+ with all dependencies (crun, passt, conmon, podman-compose) for a target user. Coordinates all 12 installation phases.
+                        </div>
+                        <div class="script-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Input Parameters / Flags:</div>
+                                <div class="detail-content">
+                                    <div class="flag-item"><span class="flag-name">--user, -u</span> &lt;username&gt; - Target user for installation (default: podman_user)</div>
+                                    <div class="flag-item"><span class="flag-name">--help, -h</span> - Show help message</div>
+                                </div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Example:</div>
+                                <div class="example-box">./install/install_podman.sh --user podman_user</div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Execution Flow:</div>
+                                <div class="execution-flow">
+                                    <div class="flow-step">Phase 1: Complete cleanup of existing podman/docker</div>
+                                    <div class="flow-step">Phase 2: Install system updates and build dependencies</div>
+                                    <div class="flow-step">Phase 3: Install Go 1.23.4</div>
+                                    <div class="flow-step">Phase 4: Build crun 1.22 (calls install_crun.sh)</div>
+                                    <div class="flow-step">Phase 5: Build passt/pasta (calls install_passt.sh)</div>
+                                    <div class="flow-step">Phase 5.1: Build conmon (calls install_conmon.sh)</div>
+                                    <div class="flow-step">Phase 6: Build Podman 5.3.1 from source</div>
+                                    <div class="flow-step">Phase 7: Verify installations</div>
+                                    <div class="flow-step">Phase 8: Enable systemd user linger</div>
+                                    <div class="flow-step">Phase 8.5: Start and enable podman socket</div>
+                                    <div class="flow-step">Phase 9: Run basic functionality tests</div>
+                                    <div class="flow-step">Phase 10: Install podman-compose (calls install_podman-compose.sh)</div>
+                                    <div class="flow-step">Phase 11: Security validation guidance</div>
+                                    <div class="flow-step">Phase 12: Consolidate PATH exports</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 1: Cleanup -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">1</div>
+                    <div class="phase-title">
+                        <h2>Complete Cleanup</h2>
+                        <div class="phase-subtitle">Remove existing podman/docker installations</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box function">
+                        <div class="script-name">cleanup_podman()</div>
+                        <div class="script-path">lib/podman_functions.sh</div>
+                        <div class="script-purpose">
+                            Non-destructive cleanup of podman containers, images, volumes. Does NOT run "podman system reset --force" to preserve manually installed binaries like crun.
+                        </div>
+                        <div class="script-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Actions Performed:</div>
+                                <div class="detail-content">
+                                    <div class="flow-step">Stop and remove all containers</div>
+                                    <div class="flow-step">Remove all images and volumes</div>
+                                    <div class="flow-step">Clean overlay storage (fixes corrupted layers)</div>
+                                    <div class="flow-step">Clear storage locks and database</div>
+                                    <div class="flow-step">Run podman system prune and network prune</div>
+                                    <div class="flow-step">Reset podman socket</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Packages Removed:</div>
+                        <div class="example-box">podman buildah crun conmon containernetworking-plugins containers-common passt slirp4netns docker-ce docker-ce-cli golang-go</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 2: Dependencies -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">2</div>
+                    <div class="phase-title">
+                        <h2>System Updates & Build Dependencies</h2>
+                        <div class="phase-subtitle">Install required packages for source compilation</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="detail-section">
+                        <div class="detail-label">System Packages Upgraded:</div>
+                        <div class="example-box">ca-certificates openssl curl wget gnupg apt-transport-https</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Build Dependencies Installed:</div>
+                        <div class="example-box">git make gcc build-essential pkg-config libsystemd-dev libgpgme-dev libseccomp-dev libbtrfs-dev libdevmapper-dev libyajl-dev libcap-dev autotools-dev autoconf automake libtool go-md2man libglib2.0-dev uidmap</div>
+                    </div>
+                    <div class="warning-box">
+                        <h4>Critical Package: uidmap</h4>
+                        <p>Provides newuidmap and newgidmap - REQUIRED for rootless Podman operation.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 3: Go -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">3</div>
+                    <div class="phase-title">
+                        <h2>Install Go 1.23.4</h2>
+                        <div class="phase-subtitle">Go compiler required for building Podman from source</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="detail-section">
+                        <div class="detail-label">Installation Steps:</div>
+                        <div class="execution-flow">
+                            <div class="flow-step">Download Go 1.23.4 from go.dev</div>
+                            <div class="flow-step">Extract to /usr/local/</div>
+                            <div class="flow-step">Add /usr/local/go/bin to target user's .bashrc</div>
+                            <div class="flow-step">Create symlinks in /usr/local/bin (go, gofmt)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: crun -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">4</div>
+                    <div class="phase-title">
+                        <h2>Build crun 1.22</h2>
+                        <div class="phase-subtitle">OCI runtime - faster than runc, required for rootless</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box sub-script">
+                        <div class="script-name">install_crun.sh</div>
+                        <div class="script-path">install/install_crun.sh</div>
+                        <div class="script-purpose">
+                            Build and install crun 1.22 OCI runtime from source for target user. Installs to ~/.local/bin/crun and configures containers.conf.
+                        </div>
+                        <div class="script-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Input Parameters / Flags:</div>
+                                <div class="detail-content">
+                                    <div class="flag-item"><span class="flag-name">--user, -u</span> &lt;username&gt; - Target user for installation</div>
+                                    <div class="flag-item"><span class="flag-name">--help, -h</span> - Show help message</div>
+                                </div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Example:</div>
+                                <div class="example-box">./install/install_crun.sh --user podman_user</div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Execution Flow:</div>
+                                <div class="execution-flow">
+                                    <div class="flow-step">Clone github.com/containers/crun (version 1.22)</div>
+                                    <div class="flow-step">Configure with --prefix=$TARGET_HOME/.local</div>
+                                    <div class="flow-step">Build: ./autogen.sh -> ./configure -> make</div>
+                                    <div class="flow-step">Install to ~/.local/bin/crun</div>
+                                    <div class="flow-step">Create ~/.config/containers/containers.conf</div>
+                                    <div class="flow-step">Set runtime = "crun", cgroup_manager = "cgroupfs"</div>
+                                    <div class="flow-step">Verify: 3-level checks (exists, executable, runs)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5: passt -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">5</div>
+                    <div class="phase-title">
+                        <h2>Build passt (pasta)</h2>
+                        <div class="phase-subtitle">Rootless networking stack</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box sub-script">
+                        <div class="script-name">install_passt.sh</div>
+                        <div class="script-path">install/install_passt.sh</div>
+                        <div class="script-purpose">
+                            Build passt/pasta network stack from https://passt.top/passt for rootless container networking.
+                        </div>
+                        <div class="script-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Input Parameters / Flags:</div>
+                                <div class="detail-content">
+                                    <div class="flag-item"><span class="flag-name">--user, -u</span> &lt;username&gt; - Target user for installation</div>
+                                    <div class="flag-item"><span class="flag-name">--help, -h</span> - Show help message</div>
+                                </div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Execution Flow:</div>
+                                <div class="execution-flow">
+                                    <div class="flow-step">Remove Debian's passt package</div>
+                                    <div class="flow-step">Install deps: git, gcc, make, libcap-dev, libseccomp-dev</div>
+                                    <div class="flow-step">Clone from https://passt.top/passt (with retry logic)</div>
+                                    <div class="flow-step">Build: make</div>
+                                    <div class="flow-step">Install to ~/.local/bin/{passt,pasta}</div>
+                                    <div class="flow-step">Update containers.conf with helper_binaries_dir and network_cmd_path</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 5.1: conmon -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">5.1</div>
+                    <div class="phase-title">
+                        <h2>Build conmon</h2>
+                        <div class="phase-subtitle">Container monitor - enables healthcheck support</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box sub-script">
+                        <div class="script-name">install_conmon.sh</div>
+                        <div class="script-path">install/install_conmon.sh</div>
+                        <div class="script-purpose">
+                            Build conmon from source. System-wide installation (/usr/local/bin) for healthcheck support.
+                        </div>
+                        <div class="script-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Input Parameters / Flags:</div>
+                                <div class="detail-content">
+                                    <div class="flag-item"><span class="flag-name">--user, -u</span> &lt;username&gt; - Target user context</div>
+                                    <div class="flag-item"><span class="flag-name">--help, -h</span> - Show help message</div>
+                                </div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Execution Flow:</div>
+                                <div class="execution-flow">
+                                    <div class="flow-step">Clone github.com/containers/conmon (latest main)</div>
+                                    <div class="flow-step">Build: make clean -> make</div>
+                                    <div class="flow-step">Install: sudo make install (system-wide)</div>
+                                    <div class="flow-step">Verify installation</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="warning-box">
+                        <h4>System-wide Installation</h4>
+                        <p>conmon is installed system-wide to /usr/local/bin to enable healthcheck functionality for all users.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 6: Podman -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">6</div>
+                    <div class="phase-title">
+                        <h2>Build Podman 5.3.1</h2>
+                        <div class="phase-subtitle">Main container engine with healthcheck support</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="detail-section">
+                        <div class="detail-label">Build Configuration:</div>
+                        <div class="example-box">make BUILDTAGS='seccomp apparmor systemd pasta'</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Build Tags Explained:</div>
+                        <div class="detail-content">
+                            <div class="flow-step"><strong>seccomp:</strong> Secure computing mode for syscall filtering</div>
+                            <div class="flow-step"><strong>apparmor:</strong> Mandatory Access Control integration</div>
+                            <div class="flow-step"><strong>systemd:</strong> Required for healthcheck functionality</div>
+                            <div class="flow-step"><strong>pasta:</strong> Rootless networking via passt</div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Execution Flow:</div>
+                        <div class="execution-flow">
+                            <div class="flow-step">Clone github.com/containers/podman</div>
+                            <div class="flow-step">Checkout v5.3.1 tag</div>
+                            <div class="flow-step">Build with recommended tags</div>
+                            <div class="flow-step">Install system-wide: sudo make install</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 7-9: Verification -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">7-9</div>
+                    <div class="phase-title">
+                        <h2>Verification & Socket Setup</h2>
+                        <div class="phase-subtitle">Verify installations and configure systemd</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box function">
+                        <div class="script-name">reset_socket()</div>
+                        <div class="script-path">lib/podman_functions.sh</div>
+                        <div class="script-purpose">
+                            Enable and start podman.socket for user session. Exports PODMAN_SOCKET to .bashrc.
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Phase 7 - Version Verification:</div>
+                        <div class="execution-flow">
+                            <div class="flow-step">Verify podman, conmon, crun, go, passt versions</div>
+                            <div class="flow-step">Reset podman socket</div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Phase 8 - Systemd Linger:</div>
+                        <div class="example-box">sudo loginctl enable-linger $TARGET_UID</div>
+                        <p style="margin-top: 10px; color: #888;">Allows user services to run without active login session.</p>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Phase 8.5 - Podman Socket:</div>
+                        <div class="example-box">systemctl --user enable podman.socket<br>systemctl --user start --now podman.socket</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Phase 9 - Functionality Tests:</div>
+                        <div class="execution-flow">
+                            <div class="flow-step">Test 1: podman run --rm alpine:latest echo "test"</div>
+                            <div class="flow-step">Test 2: podman run --rm --cap-add=NET_RAW --network=pasta alpine ping -c3 8.8.8.8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 10: podman-compose -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">10</div>
+                    <div class="phase-title">
+                        <h2>Install podman-compose</h2>
+                        <div class="phase-subtitle">Docker Compose compatible orchestration</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="script-box sub-script">
+                        <div class="script-name">install_podman-compose.sh</div>
+                        <div class="script-path">install/install_podman-compose.sh</div>
+                        <div class="script-purpose">
+                            Install latest podman-compose from GitHub. Creates system-wide symlink for convenience.
+                        </div>
+                        <div class="script-details">
+                            <div class="detail-section">
+                                <div class="detail-label">Input Parameters / Flags:</div>
+                                <div class="detail-content">
+                                    <div class="flag-item"><span class="flag-name">--user, -u</span> &lt;username&gt; - Target user for installation</div>
+                                    <div class="flag-item"><span class="flag-name">--help, -h</span> - Show help message</div>
+                                </div>
+                            </div>
+                            <div class="detail-section">
+                                <div class="detail-label">Execution Flow:</div>
+                                <div class="execution-flow">
+                                    <div class="flow-step">Remove Debian's outdated podman-compose</div>
+                                    <div class="flow-step">Create ~/bin/ directory</div>
+                                    <div class="flow-step">Download from github.com/containers/podman-compose</div>
+                                    <div class="flow-step">Install to ~/bin/podman-compose</div>
+                                    <div class="flow-step">Create symlink: /usr/local/bin/podman-compose</div>
+                                    <div class="flow-step">Install Python deps: python3-dotenv, python3-yaml, python3-requests</div>
+                                    <div class="flow-step">Verify: version check, help command</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 11: Security -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">11</div>
+                    <div class="phase-title">
+                        <h2>Security Validation</h2>
+                        <div class="phase-subtitle">Post-installation security checks</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="warning-box">
+                        <h4>Security Validation Tool</h4>
+                        <p>After installation, validate your Podman setup using:</p>
+                        <div class="example-box">
+                            git clone https://github.com/containers/podman-security-bench.git<br>
+                            cd podman-security-bench<br>
+                            sudo ./podman-security-bench.sh
+                        </div>
+                        <p style="margin-top: 10px;"><a class="security-link" href="https://github.com/containers/podman-security-bench" target="_blank">github.com/containers/podman-security-bench</a></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 12: PATH -->
+            <div class="phase">
+                <div class="phase-header" onclick="togglePhase(this)">
+                    <div class="phase-number">12</div>
+                    <div class="phase-title">
+                        <h2>Consolidate PATH Exports</h2>
+                        <div class="phase-subtitle">Clean up and finalize .bashrc configuration</div>
+                    </div>
+                </div>
+                <div class="phase-content">
+                    <div class="detail-section">
+                        <div class="detail-label">Final PATH Configuration:</div>
+                        <div class="example-box">export PATH="/usr/local/bin:$HOME/.local/bin:$HOME/bin:$PATH:/usr/local/go/bin"</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Actions:</div>
+                        <div class="execution-flow">
+                            <div class="flow-step">Remove old individual PATH exports to avoid collisions</div>
+                            <div class="flow-step">Add single consolidated PATH export</div>
+                            <div class="flow-step">Ensure proper ownership of .bashrc</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Uninstallation Section -->
+        <div class="info-section">
+            <h3>UNINSTALLATION WORKFLOW</h3>
+
+            <div class="script-box main-script">
+                <div class="script-name">uninstall_podman.sh</div>
+                <div class="script-path">uninstall/uninstall_podman.sh</div>
+                <div class="script-purpose">
+                    Complete removal of custom Podman 5.x installation and all components.
+                </div>
+                <div class="script-details">
+                    <div class="detail-section">
+                        <div class="detail-label">Input Parameters / Flags:</div>
+                        <div class="detail-content">
+                            <div class="flag-item"><span class="flag-name">--user, -u</span> &lt;username&gt; - Target user for uninstallation</div>
+                            <div class="flag-item"><span class="flag-name">--help, -h</span> - Show help message</div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Example:</div>
+                        <div class="example-box">./uninstall/uninstall_podman.sh --user podman_user</div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-label">Uninstallation Phases:</div>
+                        <div class="execution-flow">
+                            <div class="flow-step">Phase 1: Stop podman services and disable linger</div>
+                            <div class="flow-step">Phase 2: Remove user components (podman-compose, crun, passt)</div>
+                            <div class="flow-step">Phase 3: Remove system components (conmon, podman, go)</div>
+                            <div class="flow-step">Phase 3.5: Clean up storage (proper unmount of overlayfs)</div>
+                            <div class="flow-step">Phase 4: Clean up user data and .bashrc</div>
+                            <div class="flow-step">Phase 5: Remove build artifacts from /tmp</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <table>
+                <tr>
+                    <th>Component Script</th>
+                    <th>Path</th>
+                    <th>Removes</th>
+                </tr>
+                <tr>
+                    <td>uninstall_crun.sh</td>
+                    <td>uninstall/uninstall_crun.sh</td>
+                    <td>crun from system and user locations</td>
+                </tr>
+                <tr>
+                    <td>uninstall_conmon.sh</td>
+                    <td>uninstall/uninstall_conmon.sh</td>
+                    <td>conmon (system-wide)</td>
+                </tr>
+                <tr>
+                    <td>uninstall_passt.sh</td>
+                    <td>uninstall/uninstall_passt.sh</td>
+                    <td>passt/pasta from user bin</td>
+                </tr>
+                <tr>
+                    <td>uninstall_podman-compose.sh</td>
+                    <td>uninstall/uninstall_podman-compose.sh</td>
+                    <td>podman-compose user and system symlink</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Library Functions Reference -->
+        <div class="info-section">
+            <h3>LIBRARY FUNCTIONS REFERENCE</h3>
+            <table>
+                <tr>
+                    <th>File</th>
+                    <th>Path</th>
+                    <th>Key Functions</th>
+                </tr>
+                <tr>
+                    <td>constants.sh</td>
+                    <td>lib/constants.sh</td>
+                    <td>Colors (RED, GREEN, BLUE, NC), get_project_root(), get_debug_path()</td>
+                </tr>
+                <tr>
+                    <td>log_functions.sh</td>
+                    <td>lib/log_functions.sh</td>
+                    <td>log_info(), log_success(), log_error(), log_warning(), log_title()</td>
+                </tr>
+                <tr>
+                    <td>validation_functions.sh</td>
+                    <td>lib/validation_functions.sh</td>
+                    <td>check_not_root(), check_sudoer_with_home(), check_dependency()</td>
+                </tr>
+                <tr>
+                    <td>podman_functions.sh</td>
+                    <td>lib/podman_functions.sh</td>
+                    <td>cleanup_podman(), reset_socket(), get_podman_socket(), check_podman_permissions()</td>
+                </tr>
+                <tr>
+                    <td>ui_functions.sh</td>
+                    <td>lib/ui_functions.sh</td>
+                    <td>parse_script_flags(), validate_flag_usage(), continue_or_abort()</td>
+                </tr>
+                <tr>
+                    <td>file_functions.sh</td>
+                    <td>lib/file_functions.sh</td>
+                    <td>backup_file(), ensure_directory_exists(), finalize_ownership()</td>
+                </tr>
+                <tr>
+                    <td>utility_functions.sh</td>
+                    <td>lib/utility_functions.sh</td>
+                    <td>set_command(), run_command(), test_endpoint()</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Configuration Files -->
+        <div class="info-section">
+            <h3>CONFIGURATION FILES CREATED</h3>
+            <table>
+                <tr>
+                    <th>File</th>
+                    <th>Location</th>
+                    <th>Purpose</th>
+                </tr>
+                <tr>
+                    <td>containers.conf</td>
+                    <td>~/.config/containers/containers.conf</td>
+                    <td>Runtime config: crun, pasta path, compose provider</td>
+                </tr>
+                <tr>
+                    <td>.bashrc exports</td>
+                    <td>~/.bashrc</td>
+                    <td>PATH, XDG_RUNTIME_DIR, PODMAN_SOCKET</td>
+                </tr>
+                <tr>
+                    <td>crun binary</td>
+                    <td>~/.local/bin/crun</td>
+                    <td>OCI runtime binary</td>
+                </tr>
+                <tr>
+                    <td>passt/pasta binaries</td>
+                    <td>~/.local/bin/{passt,pasta}</td>
+                    <td>Rootless networking</td>
+                </tr>
+                <tr>
+                    <td>podman-compose</td>
+                    <td>~/bin/podman-compose</td>
+                    <td>Compose orchestration</td>
+                </tr>
+                <tr>
+                    <td>podman (system)</td>
+                    <td>/usr/local/bin/podman</td>
+                    <td>Container engine</td>
+                </tr>
+                <tr>
+                    <td>conmon (system)</td>
+                    <td>/usr/local/bin/conmon</td>
+                    <td>Healthcheck support</td>
+                </tr>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        function togglePhase(header) {
+            const content = header.nextElementSibling;
+            content.classList.toggle('expanded');
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.phase-content').forEach(content => {
+                content.classList.add('expanded');
+            });
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.phase-content').forEach(content => {
+                content.classList.remove('expanded');
+            });
+        }
+    </script>
+</body>
+</html>
