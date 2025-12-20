@@ -136,7 +136,6 @@ The main installer (`install_podman.sh`) executes 12 phases:
 11. **Security Guidance** - Point to validation tools
 12. **PATH Consolidation** - Clean up .bashrc
 
-For detailed documentation, see [workflow_podman_installer.html](docs/workflow_podman_installer.html).
 For detailed documentation, see [workflow_podman_installer.html](https://htmlpreview.github.io/?https://github.com/HornetGit/podman_v5.x_on_debian12/blob/main/docs/workflow_podman_installer.html).
 
 
