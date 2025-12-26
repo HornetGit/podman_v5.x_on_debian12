@@ -65,6 +65,7 @@ echo "   - crun runtime"
 echo "   - passt/pasta networking"
 echo "   - conmon (system-wide)"
 echo "   - podman-compose"
+echo "   - netavark and aardvark-dns (network backend)"
 echo "   - User configuration files"
 echo "   - Containers, images, and volumes for $TARGET_USER"
 echo ""
@@ -115,7 +116,7 @@ log_info "Uninstalling passt/pasta..."
 echo ""
 log_info "=== PHASE 3: REMOVE SYSTEM-WIDE COMPONENTS (OPTIONAL) ==="
 
-log_warning "System-wide components (Podman binary, conmon, Go) are shared by all users."
+log_warning "System-wide components (Podman binary, conmon, Go, netavark, aardvark-dns) are shared by all users."
 #read -p "Remove system-wide components? This affects ALL users! (y/N): " -n 1 -r
 REPLY="Y"
 echo
@@ -133,6 +134,11 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         log_info "Removing Go installation (system-wide)..."
         sudo rm -rf /usr/local/go
     fi
+
+    # Remove network backend packages (netavark and aardvark-dns)
+    log_info "Removing network backend packages (netavark, aardvark-dns)..."
+    sudo apt remove --purge -y netavark aardvark-dns 2>/dev/null || true
+
 
     log_success "System-wide components removed"
 else
@@ -302,9 +308,9 @@ fi
 echo ""
 log_success "=== UNINSTALLATION COMPLETED ==="
 log_info "Podman 5.x and all components have been removed for user: $TARGET_USER"
-if dpkg -l | grep -E "podman|crun|conmon|passt|podman-compose"; then 
+if dpkg -l | grep -E "podman|crun|conmon|passt|podman-compose|netavark|aardvark-dns"; then 
     log_info "Remove remaining Debian packages with:"
-    echo "   sudo apt remove --purge podman crun conmon passt podman-compose"
+    echo "   sudo apt remove --purge podman crun conmon passt podman-compose netavark aardvark-dns"
 else
     log_info "No existing Debian packages installed"
 fi

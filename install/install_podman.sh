@@ -13,6 +13,7 @@ set -Eeuo pipefail
 IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="$(dirname "$SCRIPT_DIR")"
 SCRIPT_NAME="$(basename "$0")"
 SCRIPT_RUNNER=$(echo ${SUDO_USER:-${USER}})
 
@@ -220,9 +221,13 @@ sudo apt install -y \
  # uidmap: newuidmap and newgidmap are REQUIRED for rootless Podman
 log_success  "build dependencies installed"
 
+# Install network backend components (required for Podman 5.x)
+echo "Installing netavark and aardvark-dns (network backend)..."
+sudo apt install -y netavark aardvark-dns
+log_success  "Network backend (netavark + aardvark-dns) installed"
+
 
 log_info "=== PHASE 3: INSTALL GO 1.23.4 ==="
-
 # remove previous install tarball if any, for this version
 cd /tmp
 # [ -f "go1.23.4.linux-amd64.tar.gz*" ] && rm -f go1.23.4.linux-amd64.tar.gz*
@@ -250,7 +255,7 @@ log_info "Installed Go version: $gv"
 echo ""
 
 log_info "=== PHASE 4: BUILD CRUN 1.23.4 or latest (before installing podman) ==="
-"$SCRIPT_DIR/uninstall_crun.sh" --user "$TARGET_USER" 
+"$BASE_DIR/uninstall/uninstall_crun.sh" --user "$TARGET_USER" 
 "$SCRIPT_DIR/install_crun.sh" --user "$TARGET_USER"
 
 # Fix .bashrc for TARGET_UID to define the TARGET_USER RUN DIRECTORY
@@ -297,6 +302,33 @@ make BUILDTAGS='seccomp apparmor systemd pasta'  # add pasta instead of netavark
 # Install system-wide
 sudo env "PATH=$PATH" make install
 
+
+
+log_info "=== PHASE 6.5: CONFIGURE CONTAINERS.CONF ==="
+# Create containers configuration directory
+sudo -u "$TARGET_USER" mkdir -p "$TARGET_HOME/.config/containers"
+
+# Create containers.conf with cgroupfs manager to avoid systemd warnings
+sudo -u "$TARGET_USER" cat > "$TARGET_HOME/.config/containers/containers.conf" << 'CONF_EOF'
+runtime = "crun"
+compose_warning_logs=false
+
+[engine.runtimes]
+crun = ["$TARGET_HOME/.local/bin/crun"]
+
+[engine]
+cgroup_manager = "cgroupfs"
+helper_binaries_dir = ["$TARGET_HOME/.local/bin", "/usr/lib/podman"]
+
+[network]
+network_cmd_path = "$TARGET_HOME/.local/bin/pasta"
+CONF_EOF
+
+# Expand $TARGET_HOME variable in the config file
+sudo sed -i "s|\$TARGET_HOME||g" "$TARGET_HOME/.config/containers/containers.conf"
+
+sudo chown "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/.config/containers/containers.conf"
+log_success "containers.conf configured with cgroupfs manager"
 
 log_info "=== PHASE 7: VERIFICATION ==="
 # Update PATH to include user-specific binaries for verification
