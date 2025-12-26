@@ -126,6 +126,8 @@ sudo apt remove --purge -y \
   buildah \
   crun \
   conmon \
+  netavark \
+  aardvark-dns \
   containernetworking-plugins \
   containers-common \
   golang-github-containers-common \
